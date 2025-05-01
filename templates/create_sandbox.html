@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Daytona Client - Create Sandbox{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Create Sandbox</h1>
+        <a href="{{ url_for('list_sandboxes') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Sandboxes
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('create_sandbox') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Sandbox Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="image" class="form-label">Image</label>
+                            <select class="form-select" id="image" name="image" required>
+                                <option value="" selected disabled>Select an image</option>
+                                {% for image in images %}
+                                <option value="{{ image.id }}">{{ image.name }} ({{ image.image }}:{{ image.tag }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="cpu" class="form-label">CPU Cores</label>
+                                    <input type="number" class="form-control" id="cpu" name="cpu" min="1" value="2">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="memory" class="form-label">Memory (GB)</label>
+                                    <input type="number" class="form-control" id="memory" name="memory" min="1" value="4">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="disk" class="form-label">Disk (GB)</label>
+                                    <input type="number" class="form-control" id="disk" name="disk" min="5" value="20">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Create Sandbox</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

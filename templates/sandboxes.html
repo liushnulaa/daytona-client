@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Daytona Client - Sandboxes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Sandboxes</h1>
+        <a href="{{ url_for('create_sandbox') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Create Sandbox
+        </a>
+    </div>
+    
+    {% if sandboxes %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Image</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sandbox in sandboxes %}
+                <tr>
+                    <td>{{ sandbox.name }}</td>
+                    <td>
+                        {% if sandbox.status == 'running' %}
+                        <span class="badge bg-success">Running</span>
+                        {% elif sandbox.status == 'stopped' %}
+                        <span class="badge bg-secondary">Stopped</span>
+                        {% elif sandbox.status == 'starting' %}
+                        <span class="badge bg-info">Starting</span>
+                        {% elif sandbox.status == 'stopping' %}
+                        <span class="badge bg-warning">Stopping</span>
+                        {% else %}
+                        <span class="badge bg-dark">{{ sandbox.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ sandbox.image }}</td>
+                    <td>{{ sandbox.created_at }}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('view_sandbox', sandbox_id=sandbox.id) }}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            {% if sandbox.status == 'running' %}
+                            <a href="{{ url_for('sandbox_bash', sandbox_id=sandbox.id) }}" class="btn btn-sm btn-dark">
+                                <i class="bi bi-terminal"></i> Bash
+                            </a>
+                            <form method="post" action="{{ url_for('stop_sandbox', sandbox_id=sandbox.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-warning">
+                                    <i class="bi bi-stop-circle"></i> Stop
+                                </button>
+                            </form>
+                            {% elif sandbox.status == 'stopped' %}
+                            <form method="post" action="{{ url_for('start_sandbox', sandbox_id=sandbox.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-play-circle"></i> Start
+                                </button>
+                            </form>
+                            {% endif %}
+                            <form method="post" action="{{ url_for('delete_sandbox', sandbox_id=sandbox.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this sandbox?');">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">No sandboxes found!</h4>
+        <p>You don't have any sandboxes yet. Create one to get started.</p>
+        <hr>
+        <a href="{{ url_for('create_sandbox') }}" class="btn btn-primary">Create Sandbox</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

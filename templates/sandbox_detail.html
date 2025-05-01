@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Daytona Client - Sandbox Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Sandbox: {{ sandbox.name }}</h1>
+        <div>
+            <a href="{{ url_for('list_sandboxes') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Sandboxes
+            </a>
+            {% if sandbox.status == 'running' %}
+            <a href="{{ url_for('sandbox_bash', sandbox_id=sandbox.id) }}" class="btn btn-dark">
+                <i class="bi bi-terminal"></i> Bash
+            </a>
+            <form method="post" action="{{ url_for('stop_sandbox', sandbox_id=sandbox.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-stop-circle"></i> Stop
+                </button>
+            </form>
+            {% elif sandbox.status == 'stopped' %}
+            <form method="post" action="{{ url_for('start_sandbox', sandbox_id=sandbox.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-play-circle"></i> Start
+                </button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('delete_sandbox', sandbox_id=sandbox.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this sandbox?');">
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Sandbox Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>ID:</th>
+                            <td>{{ sandbox.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ sandbox.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                {% if sandbox.status == 'running' %}
+                                <span class="badge bg-success">Running</span>
+                                {% elif sandbox.status == 'stopped' %}
+                                <span class="badge bg-secondary">Stopped</span>
+                                {% elif sandbox.status == 'starting' %}
+                                <span class="badge bg-info">Starting</span>
+                                {% elif sandbox.status == 'stopping' %}
+                                <span class="badge bg-warning">Stopping</span>
+                                {% else %}
+                                <span class="badge bg-dark">{{ sandbox.status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Image:</th>
+                            <td>{{ sandbox.image }}</td>
+                        </tr>
+                        <tr>
+                            <th>Created:</th>
+                            <td>{{ sandbox.created_at }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Resources</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>CPU:</th>
+                            <td>{{ sandbox.resources.cpu }} cores</td>
+                        </tr>
+                        <tr>
+                            <th>Memory:</th>
+                            <td>{{ sandbox.resources.memory }} GB</td>
+                        </tr>
+                        <tr>
+                            <th>Disk:</th>
+                            <td>{{ sandbox.resources.disk }} GB</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            {% if sandbox.labels %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Labels</h5>
+                </div>
+                <div class="card-body">
+                    {% for key, value in sandbox.labels.items() %}
+                    <span class="badge bg-info me-2">{{ key }}: {{ value }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

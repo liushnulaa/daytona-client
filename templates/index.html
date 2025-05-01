@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Daytona Client - Home{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12 text-center">
+            <h1 class="display-4">Welcome to Daytona Client</h1>
+            <p class="lead">Manage your Daytona sandboxes and images with ease</p>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-box display-4"></i>
+                    <h3 class="card-title mt-3">Sandboxes</h3>
+                    <p class="card-text">Create, manage, and delete your Daytona sandboxes</p>
+                    <a href="{{ url_for('list_sandboxes') }}" class="btn btn-primary">View Sandboxes</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-image display-4"></i>
+                    <h3 class="card-title mt-3">Images</h3>
+                    <p class="card-text">Manage your Daytona images for sandbox creation</p>
+                    <a href="{{ url_for('list_images') }}" class="btn btn-primary">View Images</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-terminal display-4"></i>
+                    <h3 class="card-title mt-3">Bash Access</h3>
+                    <p class="card-text">Access bash terminals in your running sandboxes</p>
+                    <a href="{{ url_for('list_sandboxes') }}" class="btn btn-primary">Go to Sandboxes</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if not session.get('api_token') %}
+    <div class="row mt-5">
+        <div class="col-md-12 text-center">
+            <div class="alert alert-info">
+                <h4>You need to login first</h4>
+                <p>Please provide your Daytona API token to access the features</p>
+                <a href="{{ url_for('login') }}" class="btn btn-info">Login</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
