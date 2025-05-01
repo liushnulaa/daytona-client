@@ -28,26 +28,42 @@
                 <tr>
                     <td>{{ sandbox.name }}</td>
                     <td>
-                        {% if sandbox.status == 'running' %}
-                        <span class="badge bg-success">Running</span>
-                        {% elif sandbox.status == 'stopped' %}
-                        <span class="badge bg-secondary">Stopped</span>
-                        {% elif sandbox.status == 'starting' %}
-                        <span class="badge bg-info">Starting</span>
-                        {% elif sandbox.status == 'stopping' %}
-                        <span class="badge bg-warning">Stopping</span>
+                        {% if sandbox.status %}
+                            {% if sandbox.status == 'running' %}
+                            <span class="badge bg-success">Running</span>
+                            {% elif sandbox.status == 'stopped' %}
+                            <span class="badge bg-secondary">Stopped</span>
+                            {% elif sandbox.status == 'starting' %}
+                            <span class="badge bg-info">Starting</span>
+                            {% elif sandbox.status == 'stopping' %}
+                            <span class="badge bg-warning">Stopping</span>
+                            {% else %}
+                            <span class="badge bg-dark">{{ sandbox.status }}</span>
+                            {% endif %}
+                        {% elif sandbox.state %}
+                            {% if sandbox.state == 'running' %}
+                            <span class="badge bg-success">Running</span>
+                            {% elif sandbox.state == 'stopped' %}
+                            <span class="badge bg-secondary">Stopped</span>
+                            {% elif sandbox.state == 'starting' %}
+                            <span class="badge bg-info">Starting</span>
+                            {% elif sandbox.state == 'stopping' %}
+                            <span class="badge bg-warning">Stopping</span>
+                            {% else %}
+                            <span class="badge bg-dark">{{ sandbox.state }}</span>
+                            {% endif %}
                         {% else %}
-                        <span class="badge bg-dark">{{ sandbox.status }}</span>
+                            <span class="badge bg-secondary">Unknown</span>
                         {% endif %}
                     </td>
                     <td>{{ sandbox.image }}</td>
-                    <td>{{ sandbox.created_at }}</td>
+                    <td>{{ sandbox.created_at if sandbox.created_at else (sandbox.createdAt if sandbox.createdAt else 'N/A') }}</td>
                     <td>
                         <div class="btn-group" role="group">
                             <a href="{{ url_for('view_sandbox', sandbox_id=sandbox.id) }}" class="btn btn-sm btn-info">
                                 <i class="bi bi-eye"></i> View
                             </a>
-                            {% if sandbox.status == 'running' %}
+                            {% if sandbox.status == 'running' or sandbox.state == 'running' %}
                             <a href="{{ url_for('sandbox_bash', sandbox_id=sandbox.id) }}" class="btn btn-sm btn-dark">
                                 <i class="bi bi-terminal"></i> Bash
                             </a>
@@ -56,7 +72,7 @@
                                     <i class="bi bi-stop-circle"></i> Stop
                                 </button>
                             </form>
-                            {% elif sandbox.status == 'stopped' %}
+                            {% elif sandbox.status == 'stopped' or sandbox.state == 'stopped' %}
                             <form method="post" action="{{ url_for('start_sandbox', sandbox_id=sandbox.id) }}" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-success">
                                     <i class="bi bi-play-circle"></i> Start

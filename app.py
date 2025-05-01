@@ -1,8 +1,11 @@
 import os
 import requests
 import urllib3
+import json
+import logging
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_cors import CORS
+from debug_logger import setup_logger
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -11,13 +14,16 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 CORS(app, supports_credentials=True)
 
+# Set up logging
+logger = setup_logger(app)
+
 # Daytona API base URL - configurable via environment variable
 DAYTONA_API_URL = os.environ.get("DAYTONA_API_URL", "https://app.daytona.io/api")
-print(f"Using Daytona API URL: {DAYTONA_API_URL}")
+logger.info(f"Using Daytona API URL: {DAYTONA_API_URL}")
 
 # Disable SSL verification for requests
 VERIFY_SSL = os.environ.get("VERIFY_SSL", "False").lower() == "true"
-print(f"SSL Verification: {'Enabled' if VERIFY_SSL else 'Disabled'}")
+logger.info(f"SSL Verification: {'Enabled' if VERIFY_SSL else 'Disabled'}")
 
 # Routes
 @app.route('/')
@@ -28,9 +34,11 @@ def index():
 @app.route('/sandboxes')
 def list_sandboxes():
     try:
+        logger.info("Accessing /sandboxes route")
         # Get API token from session or request
         api_token = session.get('api_token', request.headers.get('X-API-Token'))
         if not api_token:
+            logger.warning("API token is missing")
             flash('API token is required', 'error')
             return redirect(url_for('index'))
         
@@ -47,17 +55,29 @@ def list_sandboxes():
         
         # Make API request to get sandboxes (workspaces)
         try:
+            logger.info(f"Making API request to {DAYTONA_API_URL}/workspace")
+            logger.info(f"Headers: {json.dumps(headers)}")
+            
             response = requests.get(f"{DAYTONA_API_URL}/workspace", headers=headers, verify=VERIFY_SSL, timeout=10)
+            logger.info(f"Response status code: {response.status_code}")
             
             if response.status_code == 200:
                 sandboxes = response.json()
-                return render_template('sandboxes.html', sandboxes=sandboxes)
+                logger.info(f"Successfully fetched sandboxes. Response type: {type(sandboxes).__name__}")
+                
+                # Log the first sandbox for debugging
+                if isinstance(sandboxes, list) and len(sandboxes) > 0:
+                    logger.info(f"First sandbox: {json.dumps(sandboxes[0], indent=2)}")
+                elif isinstance(sandboxes, dict) and 'items' in sandboxes and len(sandboxes['items']) > 0:
+                    logger.info(f"First sandbox: {json.dumps(sandboxes['items'][0], indent=2)}")
+                
+                return render_template('sandboxes.html', sandboxes=sandboxes if isinstance(sandboxes, list) else (sandboxes.get('items', []) if isinstance(sandboxes, dict) else []))
             else:
                 error_message = f'Failed to fetch sandboxes: Status code {response.status_code}'
                 if response.text:
                     error_message += f' - {response.text}'
+                logger.error(error_message)
                 flash(error_message, 'error')
-                app.logger.error(error_message)
                 return redirect(url_for('index'))
         except requests.exceptions.ConnectionError:
             error_message = f'Connection error: Could not connect to Daytona API at {DAYTONA_API_URL}'
@@ -170,7 +190,11 @@ def create_sandbox():
                     'cpu': int(request.form.get('cpu', 2)),
                     'memory': int(request.form.get('memory', 4)),
                     'disk': int(request.form.get('disk', 20))
-                }
+                },
+                # Add these fields for compatibility with different API versions
+                'cpu': int(request.form.get('cpu', 2)),
+                'memory': int(request.form.get('memory', 4)),
+                'disk': int(request.form.get('disk', 20))
             }
             
             # Make API request to create sandbox
@@ -385,9 +409,11 @@ def sandbox_bash(sandbox_id):
 @app.route('/images')
 def list_images():
     try:
+        logger.info("Accessing /images route")
         # Get API token from session or request
         api_token = session.get('api_token', request.headers.get('X-API-Token'))
         if not api_token:
+            logger.warning("API token is missing")
             flash('API token is required', 'error')
             return redirect(url_for('index'))
         
@@ -403,13 +429,33 @@ def list_images():
             headers['X-Daytona-Organization-ID'] = org_id
         
         # Make API request to get images
+        logger.info(f"Making API request to {DAYTONA_API_URL}/images")
+        logger.info(f"Headers: {json.dumps(headers)}")
+        
         response = requests.get(f"{DAYTONA_API_URL}/images", headers=headers, verify=VERIFY_SSL)
+        logger.info(f"Response status code: {response.status_code}")
         
         if response.status_code == 200:
             images = response.json()
+            logger.info(f"Successfully fetched images. Response type: {type(images).__name__}")
+            
+            # Log the first image for debugging
+            if isinstance(images, list) and len(images) > 0:
+                logger.info(f"First image: {json.dumps(images[0], indent=2)}")
+            elif isinstance(images, dict) and 'items' in images and len(images['items']) > 0:
+                logger.info(f"First image: {json.dumps(images['items'][0], indent=2)}")
+            
+            # Handle different API response structures
+            if isinstance(images, dict) and 'items' in images:
+                images = images['items']
+            
             return render_template('images.html', images=images)
         else:
-            flash(f'Failed to fetch images: {response.text}', 'error')
+            error_message = f'Failed to fetch images: Status code {response.status_code}'
+            if response.text:
+                error_message += f' - {response.text}'
+            logger.error(error_message)
+            flash(error_message, 'error')
             return redirect(url_for('index'))
     except Exception as e:
         flash(f'Error: {str(e)}', 'error')

@@ -26,7 +26,10 @@
                             <select class="form-select" id="image" name="image" required>
                                 <option value="" selected disabled>Select an image</option>
                                 {% for image in images %}
-                                <option value="{{ image.id }}">{{ image.name }} ({{ image.image }}:{{ image.tag }})</option>
+                                <option value="{{ image.id if image.id else image._id }}">
+                                    {{ image.name if image.name else (image.displayName if image.displayName else 'Unnamed Image') }} 
+                                    ({{ image.image if image.image else (image.imageName if image.imageName else 'unknown') }}:{{ image.tag if image.tag else (image.imageTag if image.imageTag else 'latest') }})
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
