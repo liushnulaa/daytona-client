@@ -11,11 +11,13 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 CORS(app, supports_credentials=True)
 
-# Daytona API base URL
-DAYTONA_API_URL = "https://api.daytona.io"
+# Daytona API base URL - configurable via environment variable
+DAYTONA_API_URL = os.environ.get("DAYTONA_API_URL", "http://localhost:8080")
+print(f"Using Daytona API URL: {DAYTONA_API_URL}")
 
 # Disable SSL verification for requests
-VERIFY_SSL = False
+VERIFY_SSL = os.environ.get("VERIFY_SSL", "False").lower() == "true"
+print(f"SSL Verification: {'Enabled' if VERIFY_SSL else 'Disabled'}")
 
 # Routes
 @app.route('/')
@@ -44,16 +46,33 @@ def list_sandboxes():
             headers['X-Daytona-Organization-ID'] = org_id
         
         # Make API request to get sandboxes (workspaces)
-        response = requests.get(f"{DAYTONA_API_URL}/workspace", headers=headers, verify=VERIFY_SSL)
-        
-        if response.status_code == 200:
-            sandboxes = response.json()
-            return render_template('sandboxes.html', sandboxes=sandboxes)
-        else:
-            flash(f'Failed to fetch sandboxes: {response.text}', 'error')
+        try:
+            response = requests.get(f"{DAYTONA_API_URL}/workspace", headers=headers, verify=VERIFY_SSL, timeout=10)
+            
+            if response.status_code == 200:
+                sandboxes = response.json()
+                return render_template('sandboxes.html', sandboxes=sandboxes)
+            else:
+                error_message = f'Failed to fetch sandboxes: Status code {response.status_code}'
+                if response.text:
+                    error_message += f' - {response.text}'
+                flash(error_message, 'error')
+                app.logger.error(error_message)
+                return redirect(url_for('index'))
+        except requests.exceptions.ConnectionError:
+            error_message = f'Connection error: Could not connect to Daytona API at {DAYTONA_API_URL}'
+            flash(error_message, 'error')
+            app.logger.error(error_message)
+            return redirect(url_for('index'))
+        except requests.exceptions.Timeout:
+            error_message = f'Timeout error: Daytona API at {DAYTONA_API_URL} did not respond in time'
+            flash(error_message, 'error')
+            app.logger.error(error_message)
             return redirect(url_for('index'))
     except Exception as e:
-        flash(f'Error: {str(e)}', 'error')
+        error_message = f'Error: {str(e)}'
+        flash(error_message, 'error')
+        app.logger.error(error_message)
         return redirect(url_for('index'))
 
 @app.route('/sandboxes/<sandbox_id>')

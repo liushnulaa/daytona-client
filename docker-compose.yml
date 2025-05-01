@@ -6,5 +6,7 @@ services:
     ports:
       - "12000:12000"
     environment:
-      - DAYTONA_API_URL=https://api.daytona.io
+      # Configure these values for your environment
+      - DAYTONA_API_URL=http://localhost:8080
+      - VERIFY_SSL=False
     restart: unless-stopped

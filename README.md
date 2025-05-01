@@ -42,13 +42,40 @@ The web client provides the following API endpoints:
 - `/api/sandboxes` - Get all sandboxes
 - `/api/images` - Get all images
 
-## Environment Variables
+## Configuration
 
-- `DAYTONA_API_URL` - Daytona API URL (default: https://api.daytona.io)
+The application can be configured using the following environment variables:
 
-## SSL Verification
+- `DAYTONA_API_URL` - Daytona API URL (default: http://localhost:8080)
+- `VERIFY_SSL` - Enable SSL verification (default: "False")
 
-By default, SSL verification is disabled for API requests to handle self-signed certificates. You can enable it by setting the `VERIFY_SSL` variable to `True` in the app.py file if your Daytona API has a valid SSL certificate.
+Example of how to run with custom configuration:
+
+```bash
+# Set the Daytona API URL to your actual API server
+export DAYTONA_API_URL="https://your-daytona-api-server.com"
+
+# Enable SSL verification if your API server has a valid SSL certificate
+export VERIFY_SSL="True"
+
+# Run the application
+python app.py
+```
+
+Or with Docker:
+
+```bash
+docker run -p 12000:12000 -e DAYTONA_API_URL="https://your-daytona-api-server.com" -e VERIFY_SSL="True" daytona-client
+```
+
+## Troubleshooting
+
+If you encounter a "404 Not Found" error or connection issues, please check:
+
+1. Make sure your Daytona API server is running and accessible
+2. Verify that the `DAYTONA_API_URL` is set correctly
+3. If your API server uses HTTPS with a self-signed certificate, set `VERIFY_SSL="False"`
+4. Check that your API token has the correct permissions
 
 ## License
 
