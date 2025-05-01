@@ -12,7 +12,7 @@ app.secret_key = os.urandom(24)
 CORS(app, supports_credentials=True)
 
 # Daytona API base URL - configurable via environment variable
-DAYTONA_API_URL = os.environ.get("DAYTONA_API_URL", "http://localhost:8080")
+DAYTONA_API_URL = os.environ.get("DAYTONA_API_URL", "https://app.daytona.io/api")
 print(f"Using Daytona API URL: {DAYTONA_API_URL}")
 
 # Disable SSL verification for requests
