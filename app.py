@@ -3,6 +3,7 @@ import requests
 import urllib3
 import json
 import logging
+import time
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_cors import CORS
 from debug_logger import setup_logger
@@ -465,35 +466,57 @@ def sandbox_bash(sandbox_id):
             else:
                 try:
                     command_result = command_response.json()
+                    app.logger.info(f"Command result: {json.dumps(command_result)}")
+                    
                     # Try to get cmdId first, then fall back to id if cmdId is not present
                     command_id = command_result.get('cmdId') or command_result.get('id')
-                    
-                    if not command_id:
-                        app.logger.warning("Command ID is missing in the response")
-                        output = "Command executed but no output was returned"
-                        return render_template('sandbox_bash.html', sandbox=sandbox, sandbox_id=sandbox_id, command=command, output=output)
-                        
                     app.logger.info(f"Command ID: {command_id}")
                     
-                    # Get command output
-                    logs_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}/logs"
-                    app.logger.info(f"Getting command logs from: {logs_url}")
+                    # Extract output directly from the command response
+                    output = command_result.get('output', '')
+                    exit_code = command_result.get('exitCode')
                     
-                    logs_response = requests.get(
-                        logs_url,
-                        headers=headers,
-                        verify=VERIFY_SSL
-                    )
+                    app.logger.info(f"Initial command output: {output[:100]}...")
+                    app.logger.info(f"Command exit code: {exit_code}")
                     
-                    app.logger.info(f"Logs response status code: {logs_response.status_code}")
+                    # If output is empty, try to get it from the logs endpoint
+                    if not output:
+                        # Get command output from logs endpoint
+                        logs_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}/logs"
+                        app.logger.info(f"Getting command logs from: {logs_url}")
+                        
+                        # Try up to 3 times with a short delay
+                        for attempt in range(3):
+                            logs_response = requests.get(
+                                logs_url,
+                                headers=headers,
+                                verify=VERIFY_SSL
+                            )
+                            
+                            app.logger.info(f"Logs response status code: {logs_response.status_code}")
+                            
+                            if logs_response.status_code == 200:
+                                try:
+                                    logs_data = logs_response.json()
+                                    app.logger.info(f"Logs response JSON: {logs_data}")
+                                    if isinstance(logs_data, dict) and 'output' in logs_data:
+                                        output = logs_data['output']
+                                        app.logger.info(f"Found output in logs response: {output[:100]}...")
+                                        break
+                                except ValueError:
+                                    # If not JSON, use the raw text
+                                    output = logs_response.text
+                                    app.logger.info(f"Using raw text as output: {output[:100]}...")
+                                    break
+                            
+                            # Wait a bit before trying again
+                            time.sleep(1)
                     
-                    if logs_response.status_code != 200:
-                        error_message = f'Failed to get command output: {logs_response.text}'
-                        app.logger.error(error_message)
-                        flash(error_message, 'error')
-                        return render_template('sandbox_bash.html', sandbox=sandbox, sandbox_id=sandbox_id, command=command, output="Error retrieving command output")
-                    logs = logs_response.text
-                    app.logger.info(f"Command output: {logs[:100]}...")
+                    # If output is still empty but exit code is 0, provide a message
+                    if not output and exit_code == 0:
+                        output = "Command executed successfully (no output)"
+                    elif not output:
+                        output = "Command executed but no output was returned"
                     
                     # Get sandbox details again to ensure we have the latest data
                     sandbox_response = requests.get(f"{DAYTONA_API_URL}/workspace/{sandbox_id}", headers=headers, verify=VERIFY_SSL)
@@ -501,7 +524,7 @@ def sandbox_bash(sandbox_id):
                     if sandbox_response.status_code == 200:
                         sandbox = sandbox_response.json()
                     
-                    return render_template('sandbox_bash.html', sandbox_id=sandbox_id, sandbox=sandbox, command=command, output=logs)
+                    return render_template('sandbox_bash.html', sandbox_id=sandbox_id, sandbox=sandbox, command=command, output=output)
                 except Exception as e:
                     app.logger.error(f"Error processing command response: {str(e)}")
                     output = f"Error processing command: {str(e)}"
