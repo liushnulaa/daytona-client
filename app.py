@@ -476,17 +476,42 @@ def sandbox_bash(sandbox_id):
                     output = command_result.get('output', '')
                     exit_code = command_result.get('exitCode')
                     
-                    app.logger.info(f"Initial command output: {output[:100]}...")
+                    # Log the full command result for debugging
+                    app.logger.info(f"Full command result: {json.dumps(command_result)[:200]}...")
+                    app.logger.info(f"Initial command output: {output[:100] if output else 'None'}...")
                     app.logger.info(f"Command exit code: {exit_code}")
                     
-                    # If output is empty, try to get it from the logs endpoint
+                    # If output is empty, try to get it from the output and logs endpoints
                     if not output:
-                        # Get command output from logs endpoint
-                        logs_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}/logs"
-                        app.logger.info(f"Getting command logs from: {logs_url}")
+                        # First try the command output endpoint with retries
+                        output_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}/output"
+                        app.logger.info(f"Getting command output from: {output_url}")
                         
                         # Try up to 3 times with a short delay
                         for attempt in range(3):
+                            output_response = requests.get(
+                                output_url,
+                                headers=headers,
+                                verify=VERIFY_SSL
+                            )
+                            
+                            app.logger.info(f"Output response status code: {output_response.status_code}")
+                            
+                            if output_response.status_code == 200:
+                                app.logger.info(f"Output response raw text: {output_response.text[:200]}...")
+                                if output_response.text.strip():
+                                    output = output_response.text
+                                    app.logger.info(f"Using output endpoint response: {output[:100]}...")
+                                    break
+                            
+                            # Wait a bit before trying again
+                            time.sleep(1)
+                        
+                        # If still no output, try the logs endpoint
+                        if not output:
+                            logs_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}/logs"
+                            app.logger.info(f"Getting command logs from: {logs_url}")
+                            
                             logs_response = requests.get(
                                 logs_url,
                                 headers=headers,
@@ -496,21 +521,31 @@ def sandbox_bash(sandbox_id):
                             app.logger.info(f"Logs response status code: {logs_response.status_code}")
                             
                             if logs_response.status_code == 200:
+                                # Log the raw response text for debugging
+                                app.logger.info(f"Logs response raw text: {logs_response.text[:200]}...")
+                                
                                 try:
+                                    # Try to parse as JSON
                                     logs_data = logs_response.json()
                                     app.logger.info(f"Logs response JSON: {logs_data}")
+                                    
+                                    # Check if it's a dictionary with 'output' key
                                     if isinstance(logs_data, dict) and 'output' in logs_data:
                                         output = logs_data['output']
                                         app.logger.info(f"Found output in logs response: {output[:100]}...")
-                                        break
+                                    # If it's just a string, use it directly
+                                    elif isinstance(logs_data, str) and logs_data.strip():
+                                        output = logs_data
+                                        app.logger.info(f"Using JSON string as output: {output[:100]}...")
+                                    # If it's a list or other structure, convert to string
+                                    elif logs_data:
+                                        output = str(logs_data)
+                                        app.logger.info(f"Converting JSON to string: {output[:100]}...")
                                 except ValueError:
-                                    # If not JSON, use the raw text
-                                    output = logs_response.text
-                                    app.logger.info(f"Using raw text as output: {output[:100]}...")
-                                    break
-                            
-                            # Wait a bit before trying again
-                            time.sleep(1)
+                                    # If not JSON, use the raw text if it's not empty
+                                    if logs_response.text.strip():
+                                        output = logs_response.text
+                                        app.logger.info(f"Using raw text as output: {output[:100]}...")
                     
                     # If output is still empty but exit code is 0, provide a message
                     if not output and exit_code == 0:
