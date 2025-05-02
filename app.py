@@ -492,12 +492,12 @@ def sandbox_bash(sandbox_id):
                                       "mnt", "opt", "proc", "root", "run", "sbin", "srv", "sys", 
                                       "tmp", "usr", "var"]
                         
-                        # Format directories with color classes
+                        # Format directories with proper terminal colors (blue for directories)
                         formatted_dirs = []
                         for dir_name in directories:
-                            formatted_dirs.append(f'<span class="dir-{dir_name}">{dir_name}</span>')
+                            formatted_dirs.append(f'<span style="color: #3498db;">{dir_name}</span>')
                         
-                        # Arrange in columns (4 columns)
+                        # Arrange in columns (4 columns) with proper spacing
                         columns = 4
                         rows = []
                         for i in range(0, len(formatted_dirs), columns):
