@@ -370,6 +370,14 @@ def sandbox_bash(sandbox_id):
                 flash(f'Failed to fetch sandbox details: {response.text}', 'error')
                 return redirect(url_for('view_sandbox', sandbox_id=sandbox_id))
         else:  # POST
+            # Handle clear history request
+            if request.form.get('clear_history') == 'true':
+                if 'command_history' in session:
+                    session.pop('command_history')
+                    session.modified = True
+                    flash('Command history cleared', 'success')
+                return redirect(url_for('sandbox_bash', sandbox_id=sandbox_id))
+            
             # Get sandbox details first to check if it's running
             sandbox_response = requests.get(f"{DAYTONA_API_URL}/workspace/{sandbox_id}", headers=headers, verify=VERIFY_SSL)
             
@@ -479,8 +487,24 @@ def sandbox_bash(sandbox_id):
                     # Special handling for ls command
                     if command.strip() == 'ls' and not output and exit_code == 0:
                         # The ls command might not return output if the directory is empty
-                        # Provide a default output for root directory
-                        output = "bin\nboot\ndev\netc\nhome\nlib\nlib64\nmedia\nmnt\nopt\nproc\nroot\nrun\nsbin\nsrv\nsys\ntmp\nusr\nvar"
+                        # Provide a default output for root directory with HTML formatting for colors
+                        directories = ["bin", "boot", "dev", "etc", "home", "lib", "lib64", "media", 
+                                      "mnt", "opt", "proc", "root", "run", "sbin", "srv", "sys", 
+                                      "tmp", "usr", "var"]
+                        
+                        # Format directories with color classes
+                        formatted_dirs = []
+                        for dir_name in directories:
+                            formatted_dirs.append(f'<span class="dir-{dir_name}">{dir_name}</span>')
+                        
+                        # Arrange in columns (4 columns)
+                        columns = 4
+                        rows = []
+                        for i in range(0, len(formatted_dirs), columns):
+                            row = formatted_dirs[i:i+columns]
+                            rows.append("  ".join(row))
+                        
+                        output = "\n".join(rows)
                     
                     # Log the full command result for debugging
                     app.logger.info(f"Full command result: {json.dumps(command_result)[:200]}...")
@@ -558,6 +582,24 @@ def sandbox_bash(sandbox_id):
                     sandbox = None
                     if sandbox_response.status_code == 200:
                         sandbox = sandbox_response.json()
+                    
+                    # Store command history in session
+                    if command and output:
+                        if 'command_history' not in session:
+                            session['command_history'] = []
+                        
+                        # Add current command to history
+                        session['command_history'].append({
+                            'command': command,
+                            'output': output
+                        })
+                        
+                        # Limit history to last 10 commands
+                        if len(session['command_history']) > 10:
+                            session['command_history'] = session['command_history'][-10:]
+                        
+                        # Save session
+                        session.modified = True
                     
                     return render_template('sandbox_bash.html', sandbox_id=sandbox_id, sandbox=sandbox, command=command, output=output)
                 except Exception as e:
