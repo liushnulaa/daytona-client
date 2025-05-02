@@ -465,7 +465,8 @@ def sandbox_bash(sandbox_id):
             else:
                 try:
                     command_result = command_response.json()
-                    command_id = command_result.get('id')
+                    # Try to get cmdId first, then fall back to id if cmdId is not present
+                    command_id = command_result.get('cmdId') or command_result.get('id')
                     
                     if not command_id:
                         app.logger.warning("Command ID is missing in the response")
