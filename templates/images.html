@@ -6,66 +6,142 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Images</h1>
-        <a href="{{ url_for('create_image') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create Image
+        <a href="{{ url_for('create_image') }}" class="btn btn-dark">
+            <i class="bi bi-plus"></i> Create Image
         </a>
     </div>
     
     {% if images %}
     <div class="table-responsive">
-        <table class="table table-striped table-hover">
+        <table class="table table-dark table-hover">
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Image</th>
-                    <th>Tag</th>
-                    <th>Description</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                    <th>State</th>
+                    <th>Size</th>
+                    <th>Entrypoint</th>
+                    <th>Created</th>
+                    <th>Last Used</th>
+                    <th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for image in images %}
                 <tr>
-                    <td>{{ image.name if image.name else (image.displayName if image.displayName else 'N/A') }}</td>
-                    <td>{{ image.image if image.image else (image.imageName if image.imageName else 'N/A') }}</td>
-                    <td>{{ image.tag if image.tag else (image.imageTag if image.imageTag else 'latest') }}</td>
-                    <td>{{ image.description if image.description else 'No description' }}</td>
                     <td>
-                        {% if image.enabled is defined %}
-                            {% if image.enabled %}
-                            <span class="badge bg-success">Enabled</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Disabled</span>
-                            {% endif %}
-                        {% elif image.isEnabled is defined %}
-                            {% if image.isEnabled %}
-                            <span class="badge bg-success">Enabled</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Disabled</span>
-                            {% endif %}
+                        {% if image.name and ':' in image.name %}
+                            {{ image.name }}
+                        {% elif image.displayName and ':' in image.displayName %}
+                            {{ image.displayName }}
                         {% else %}
-                            <span class="badge bg-success">Enabled</span>
+                            {{ image.image if image.image else (image.imageName if image.imageName else 'unknown') }}:{{ image.tag if image.tag else (image.imageTag if image.imageTag else 'latest') }}
                         {% endif %}
                     </td>
                     <td>
-                        <form method="post" action="{{ url_for('delete_image', image_id=image.id if image.id else image._id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this image?');">
-                            <button type="submit" class="btn btn-sm btn-danger">
-                                <i class="bi bi-trash"></i> Delete
+                        {% if image.enabled is defined %}
+                            {% if image.enabled %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Enabled</span>
+                            {% else %}
+                            <span class="text-secondary"><i class="bi bi-x-circle"></i> Disabled</span>
+                            {% endif %}
+                        {% elif image.isEnabled is defined %}
+                            {% if image.isEnabled %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Enabled</span>
+                            {% else %}
+                            <span class="text-secondary"><i class="bi bi-x-circle"></i> Disabled</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Enabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if image.state %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> {{ image.state|title }}</span>
+                        {% else %}
+                            <span class="text-secondary">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if image.size %}
+                            {{ "%.2f"|format(image.size) }} MB
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if image.entrypoint %}
+                            {% if image.entrypoint is string %}
+                                {{ image.entrypoint }}
+                            {% else %}
+                                {{ image.entrypoint|join(' ') }}
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if image.createdAt %}
+                            {{ image.createdAt.split('T')[0] }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if image.lastUsedAt %}
+                            {{ image.lastUsedAt.split('T')[0] }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-dark dropdown-toggle" type="button" id="dropdownMenuButton{{ loop.index }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots"></i>
                             </button>
-                        </form>
+                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index }}">
+                                <li>
+                                    <form method="post" action="{{ url_for('delete_image', image_id=image.id if image.id else image._id) }}" onsubmit="return confirm('Are you sure you want to delete this image?');">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+                <span class="text-light">Rows per page</span>
+                <select class="form-select form-select-sm d-inline-block ms-2 bg-dark text-light" style="width: auto;">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <div>
+                <span class="text-light">Page 1 of 1</span>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-sm btn-dark" disabled><i class="bi bi-chevron-double-left"></i></button>
+                    <button type="button" class="btn btn-sm btn-dark" disabled><i class="bi bi-chevron-left"></i></button>
+                    <button type="button" class="btn btn-sm btn-dark" disabled><i class="bi bi-chevron-right"></i></button>
+                    <button type="button" class="btn btn-sm btn-dark" disabled><i class="bi bi-chevron-double-right"></i></button>
+                </div>
+            </div>
+        </div>
     </div>
     {% else %}
-    <div class="alert alert-info">
+    <div class="alert alert-dark">
         <h4 class="alert-heading">No images found!</h4>
         <p>You don't have any images yet. Create one to get started.</p>
         <hr>
-        <a href="{{ url_for('create_image') }}" class="btn btn-primary">Create Image</a>
+        <a href="{{ url_for('create_image') }}" class="btn btn-dark">Create Image</a>
     </div>
     {% endif %}
 </div>

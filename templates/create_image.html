@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Create Image</h1>
+        <h1>Create New Image</h1>
         <a href="{{ url_for('list_images') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Back to Images
         </a>
@@ -13,34 +13,24 @@
     
     <div class="row">
         <div class="col-md-8 mx-auto">
-            <div class="card">
+            <div class="card bg-dark text-light">
                 <div class="card-body">
                     <form method="post" action="{{ url_for('create_image') }}">
                         <div class="mb-3">
-                            <label for="name" class="form-label">Image Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                            <div class="form-text">A friendly name for your image</div>
+                            <label for="image_name" class="form-label">Image Name</label>
+                            <input type="text" class="form-control bg-dark text-light" id="image_name" name="image_name" required placeholder="ubuntu:22.04" value="{{ image_name if image_name else '' }}">
+                            <div class="form-text text-light">Must include a tag (e.g., ubuntu:22.04). The tag "latest" is not allowed.</div>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            <label for="entrypoint" class="form-label">Entrypoint (optional)</label>
+                            <input type="text" class="form-control bg-dark text-light" id="entrypoint" name="entrypoint" placeholder="sleep infinity" value="{{ entrypoint if entrypoint else '' }}">
+                            <div class="form-text text-light">Ensure that the entrypoint is a long running command. If not provided, or if the image does not have an entrypoint, 'sleep infinity' will be used as the default.</div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label for="image" class="form-label">Docker Image</label>
-                            <input type="text" class="form-control" id="image" name="image" required>
-                            <div class="form-text">Docker image name (e.g., ubuntu, node, python)</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="tag" class="form-label">Tag</label>
-                            <input type="text" class="form-control" id="tag" name="tag" value="latest">
-                            <div class="form-text">Docker image tag (e.g., latest, 3.9, 16)</div>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Create Image</button>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url_for('list_images') }}'">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create</button>
                         </div>
                     </form>
                 </div>
