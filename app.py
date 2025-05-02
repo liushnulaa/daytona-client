@@ -476,10 +476,40 @@ def sandbox_bash(sandbox_id):
                     output = command_result.get('output', '')
                     exit_code = command_result.get('exitCode')
                     
+                    # Special handling for ls command
+                    if command.strip() == 'ls' and not output and exit_code == 0:
+                        # The ls command might not return output if the directory is empty
+                        output = "(empty directory)"
+                    
                     # Log the full command result for debugging
                     app.logger.info(f"Full command result: {json.dumps(command_result)[:200]}...")
-                    app.logger.info(f"Initial command output: {output[:100] if output else 'None'}...")
+                    app.logger.info(f"Command output: {output[:100] if output else 'None'}...")
                     app.logger.info(f"Command exit code: {exit_code}")
+                    
+                    # If we have a command ID but no output, try to get the output directly
+                    if not output and command_id:
+                        # Try to get the output directly from the command endpoint
+                        cmd_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}"
+                        app.logger.info(f"Getting command output directly from: {cmd_url}")
+                        
+                        cmd_response = requests.get(
+                            cmd_url,
+                            headers=headers,
+                            verify=VERIFY_SSL
+                        )
+                        
+                        app.logger.info(f"Command direct response status code: {cmd_response.status_code}")
+                        
+                        if cmd_response.status_code == 200:
+                            try:
+                                cmd_data = cmd_response.json()
+                                app.logger.info(f"Command direct data: {json.dumps(cmd_data)[:200]}...")
+                                
+                                if isinstance(cmd_data, dict) and 'output' in cmd_data and cmd_data['output']:
+                                    output = cmd_data['output']
+                                    app.logger.info(f"Found output in direct command response: {output[:100]}...")
+                            except ValueError:
+                                app.logger.info("Failed to parse direct command response as JSON")
                     
                     # If output is empty, try to get it from the output and logs endpoints
                     if not output:
@@ -547,9 +577,35 @@ def sandbox_bash(sandbox_id):
                                         output = logs_response.text
                                         app.logger.info(f"Using raw text as output: {output[:100]}...")
                     
-                    # If output is still empty but exit code is 0, provide a message
+                    # If output is still empty but exit code is 0, try to get the output directly from the API
                     if not output and exit_code == 0:
-                        output = "Command executed successfully (no output)"
+                        # Try to get the output directly from the API
+                        direct_output_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}"
+                        app.logger.info(f"Getting direct command output from: {direct_output_url}")
+                        
+                        direct_output_response = requests.get(
+                            direct_output_url,
+                            headers=headers,
+                            verify=VERIFY_SSL
+                        )
+                        
+                        app.logger.info(f"Direct output response status code: {direct_output_response.status_code}")
+                        
+                        if direct_output_response.status_code == 200:
+                            try:
+                                direct_output_data = direct_output_response.json()
+                                app.logger.info(f"Direct output data: {json.dumps(direct_output_data)[:200]}...")
+                                
+                                # Check if the response contains the output
+                                if isinstance(direct_output_data, dict) and 'output' in direct_output_data:
+                                    output = direct_output_data['output']
+                                    app.logger.info(f"Found output in direct response: {output[:100] if output else 'empty'}...")
+                            except ValueError:
+                                app.logger.info("Failed to parse direct output response as JSON")
+                        
+                        # If still no output, provide a default message
+                        if not output:
+                            output = "Command executed successfully (no output)"
                     elif not output:
                         output = "Command executed but no output was returned"
                     

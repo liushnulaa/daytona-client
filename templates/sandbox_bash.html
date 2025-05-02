@@ -56,7 +56,7 @@
                         <div class="command-entry">
                             <span class="command-prompt">$ </span><span>{{ command }}</span>
                         </div>
-                        <div class="command-output">{{ output }}</div>
+                        <div class="command-output">{{ output|safe }}</div>
                         {% else %}
                         <div class="welcome-message">
                             Welcome to the Daytona Sandbox Terminal.
