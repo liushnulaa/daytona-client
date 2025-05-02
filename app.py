@@ -460,42 +460,51 @@ def sandbox_bash(sandbox_id):
             # If status code is 201, the command was executed successfully but no content was returned
             if command_response.status_code == 201 or not command_response.text:
                 app.logger.info("Command executed successfully but no content returned")
-                command_id = None
                 output = "Command executed successfully"
                 return render_template('sandbox_bash.html', sandbox=sandbox, sandbox_id=sandbox_id, command=command, output=output)
             else:
-                command_result = command_response.json()
-                command_id = command_result.get('id')
-            app.logger.info(f"Command ID: {command_id}")
-            
-            # Get command output
-            logs_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}/logs"
-            app.logger.info(f"Getting command logs from: {logs_url}")
-            
-            logs_response = requests.get(
-                logs_url,
-                headers=headers,
-                verify=VERIFY_SSL
-            )
-            
-            app.logger.info(f"Logs response status code: {logs_response.status_code}")
-            
-            if logs_response.status_code != 200:
-                error_message = f'Failed to get command output: {logs_response.text}'
-                app.logger.error(error_message)
-                flash(error_message, 'error')
-                return redirect(url_for('sandbox_bash', sandbox_id=sandbox_id))
-            
-            logs = logs_response.text
-            app.logger.info(f"Command output: {logs[:100]}...")
-            
-            # Get sandbox details again to ensure we have the latest data
-            sandbox_response = requests.get(f"{DAYTONA_API_URL}/workspace/{sandbox_id}", headers=headers, verify=VERIFY_SSL)
-            sandbox = None
-            if sandbox_response.status_code == 200:
-                sandbox = sandbox_response.json()
-            
-            return render_template('sandbox_bash.html', sandbox_id=sandbox_id, sandbox=sandbox, command=command, output=logs)
+                try:
+                    command_result = command_response.json()
+                    command_id = command_result.get('id')
+                    
+                    if not command_id:
+                        app.logger.warning("Command ID is missing in the response")
+                        output = "Command executed but no output was returned"
+                        return render_template('sandbox_bash.html', sandbox=sandbox, sandbox_id=sandbox_id, command=command, output=output)
+                        
+                    app.logger.info(f"Command ID: {command_id}")
+                    
+                    # Get command output
+                    logs_url = f"{DAYTONA_API_URL}/toolbox/{sandbox_id}/toolbox/process/session/{session_id}/command/{command_id}/logs"
+                    app.logger.info(f"Getting command logs from: {logs_url}")
+                    
+                    logs_response = requests.get(
+                        logs_url,
+                        headers=headers,
+                        verify=VERIFY_SSL
+                    )
+                    
+                    app.logger.info(f"Logs response status code: {logs_response.status_code}")
+                    
+                    if logs_response.status_code != 200:
+                        error_message = f'Failed to get command output: {logs_response.text}'
+                        app.logger.error(error_message)
+                        flash(error_message, 'error')
+                        return render_template('sandbox_bash.html', sandbox=sandbox, sandbox_id=sandbox_id, command=command, output="Error retrieving command output")
+                    logs = logs_response.text
+                    app.logger.info(f"Command output: {logs[:100]}...")
+                    
+                    # Get sandbox details again to ensure we have the latest data
+                    sandbox_response = requests.get(f"{DAYTONA_API_URL}/workspace/{sandbox_id}", headers=headers, verify=VERIFY_SSL)
+                    sandbox = None
+                    if sandbox_response.status_code == 200:
+                        sandbox = sandbox_response.json()
+                    
+                    return render_template('sandbox_bash.html', sandbox_id=sandbox_id, sandbox=sandbox, command=command, output=logs)
+                except Exception as e:
+                    app.logger.error(f"Error processing command response: {str(e)}")
+                    output = f"Error processing command: {str(e)}"
+                    return render_template('sandbox_bash.html', sandbox=sandbox, sandbox_id=sandbox_id, command=command, output=output)
     except Exception as e:
         flash(f'Error: {str(e)}', 'error')
         return redirect(url_for('view_sandbox', sandbox_id=sandbox_id))
