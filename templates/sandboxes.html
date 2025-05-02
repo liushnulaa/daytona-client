@@ -6,14 +6,14 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Sandboxes</h1>
-        <a href="{{ url_for('create_sandbox') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create Sandbox
+        <a href="{{ url_for('create_sandbox') }}" class="btn btn-dark">
+            <i class="bi bi-plus"></i> Create Sandbox
         </a>
     </div>
     
     {% if sandboxes %}
     <div class="table-responsive">
-        <table class="table table-striped table-hover">
+        <table class="table table-dark table-hover">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -29,8 +29,8 @@
                     <td>{{ sandbox.name }}</td>
                     <td>
                         {% if sandbox.status %}
-                            {% if sandbox.status == 'running' %}
-                            <span class="badge bg-success">Running</span>
+                            {% if sandbox.status == 'running' or sandbox.status == 'started' %}
+                            <span class="badge bg-success">{{ sandbox.status }}</span>
                             {% elif sandbox.status == 'stopped' %}
                             <span class="badge bg-secondary">Stopped</span>
                             {% elif sandbox.status == 'starting' %}
@@ -41,8 +41,8 @@
                             <span class="badge bg-dark">{{ sandbox.status }}</span>
                             {% endif %}
                         {% elif sandbox.state %}
-                            {% if sandbox.state == 'running' %}
-                            <span class="badge bg-success">Running</span>
+                            {% if sandbox.state == 'running' or sandbox.state == 'started' %}
+                            <span class="badge bg-success">{{ sandbox.state }}</span>
                             {% elif sandbox.state == 'stopped' %}
                             <span class="badge bg-secondary">Stopped</span>
                             {% elif sandbox.state == 'starting' %}
@@ -57,13 +57,24 @@
                         {% endif %}
                     </td>
                     <td>{{ sandbox.image }}</td>
-                    <td>{{ sandbox.created_at if sandbox.created_at else (sandbox.createdAt if sandbox.createdAt else 'N/A') }}</td>
+                    <td>
+                        {% if sandbox.info and sandbox.info.created %}
+                            {{ sandbox.info.created.split('T')[0] }}
+                        {% elif sandbox.created_at %}
+                            {{ sandbox.created_at.split('T')[0] if 'T' in sandbox.created_at else sandbox.created_at }}
+                        {% elif sandbox.createdAt %}
+                            {{ sandbox.createdAt.split('T')[0] if 'T' in sandbox.createdAt else sandbox.createdAt }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
                     <td>
                         <div class="btn-group" role="group">
                             <a href="{{ url_for('view_sandbox', sandbox_id=sandbox.id) }}" class="btn btn-sm btn-info">
                                 <i class="bi bi-eye"></i> View
                             </a>
-                            {% if sandbox.status == 'running' or sandbox.state == 'running' %}
+                            
+                            {% if sandbox.status == 'running' or sandbox.status == 'started' or sandbox.state == 'running' or sandbox.state == 'started' %}
                             <a href="{{ url_for('sandbox_bash', sandbox_id=sandbox.id) }}" class="btn btn-sm btn-dark">
                                 <i class="bi bi-terminal"></i> Bash
                             </a>
@@ -78,7 +89,12 @@
                                     <i class="bi bi-play-circle"></i> Start
                                 </button>
                             </form>
+                            {% else %}
+                            <a href="{{ url_for('sandbox_bash', sandbox_id=sandbox.id) }}" class="btn btn-sm btn-dark">
+                                <i class="bi bi-terminal"></i> Bash
+                            </a>
                             {% endif %}
+                            
                             <form method="post" action="{{ url_for('delete_sandbox', sandbox_id=sandbox.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this sandbox?');">
                                 <button type="submit" class="btn btn-sm btn-danger">
                                     <i class="bi bi-trash"></i> Delete
@@ -92,11 +108,11 @@
         </table>
     </div>
     {% else %}
-    <div class="alert alert-info">
+    <div class="alert alert-dark">
         <h4 class="alert-heading">No sandboxes found!</h4>
         <p>You don't have any sandboxes yet. Create one to get started.</p>
         <hr>
-        <a href="{{ url_for('create_sandbox') }}" class="btn btn-primary">Create Sandbox</a>
+        <a href="{{ url_for('create_sandbox') }}" class="btn btn-dark">Create Sandbox</a>
     </div>
     {% endif %}
 </div>
